@@ -1,63 +1,102 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useEffect } from 'react';
+import Link from 'next/link';
+import CSVUpload from '@/components/setup/csv-upload';
+import SleeperConnect from '@/components/setup/sleeper-connect';
+import EspnConnect from '@/components/setup/espn-connect';
+import YahooConnect from '@/components/setup/yahoo-connect';
+import { useDraftStore } from '@/stores/draft-store';
+import { useConnectionStore } from '@/stores/connection-store';
+
+export default function SetupPage() {
+  const { rankings, loadRankings } = useDraftStore();
+  const { sleeperStatus, espnStatus, yahooStatus } = useConnectionStore();
+
+  // Restore CSV from localStorage on mount
+  useEffect(() => {
+    if (!rankings) {
+      try {
+        const saved = localStorage.getItem('ff_csv');
+        if (saved) loadRankings(saved);
+      } catch { /* ignore */ }
+    }
+  }, [rankings, loadRankings]);
+
+  const hasRankings = rankings && rankings.players.length > 0;
+  const hasConnection = sleeperStatus === 'active' || espnStatus === 'active' || yahooStatus === 'active';
+  const canStart = hasRankings;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen flex flex-col">
+      {/* Header */}
+      <header className="bg-surface border-b-2 border-accent px-6 py-4">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-extrabold text-accent tracking-wider">
+              FF DRAFT ANALYST
+            </h1>
+            <p className="text-xs text-text-muted mt-0.5">
+              FantasyPros-powered live draft assistant
+            </p>
+          </div>
+          {canStart && (
+            <Link
+              href="/draft"
+              className="bg-accent hover:bg-accent-hover text-white text-sm font-semibold rounded-lg px-5 py-2.5 transition-colors"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              {hasConnection ? 'Open Draft Dashboard' : 'Open Dashboard (Manual Mode)'}
+            </Link>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </header>
+
+      {/* Main */}
+      <main className="flex-1 px-6 py-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          {/* Step 1: Rankings */}
+          <section>
+            <div className="flex items-center gap-3 mb-4">
+              <span className="flex items-center justify-center w-7 h-7 rounded-full bg-accent text-white text-sm font-bold">1</span>
+              <h2 className="text-base font-bold text-text">Upload Your Rankings</h2>
+            </div>
+            <CSVUpload />
+          </section>
+
+          {/* Step 2: Connect */}
+          <section>
+            <div className="flex items-center gap-3 mb-4">
+              <span className={`flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold ${
+                hasRankings ? 'bg-accent text-white' : 'bg-border text-text-muted'
+              }`}>2</span>
+              <h2 className={`text-base font-bold ${hasRankings ? 'text-text' : 'text-text-muted'}`}>
+                Connect to a Live Draft
+              </h2>
+              <span className="text-xs text-text-dim">(optional — you can track manually)</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <SleeperConnect />
+              <EspnConnect />
+              <YahooConnect />
+            </div>
+          </section>
+
+          {/* Start */}
+          {canStart && (
+            <section className="text-center pt-4">
+              <Link
+                href="/draft"
+                className="inline-block bg-accent hover:bg-accent-hover text-white text-base font-bold rounded-lg px-8 py-3 transition-colors"
+              >
+                {hasConnection ? 'Start Draft Dashboard' : 'Start in Manual Mode'}
+              </Link>
+              {!hasConnection && (
+                <p className="text-xs text-text-dim mt-2">
+                  In manual mode, right-click players to mark them as drafted
+                </p>
+              )}
+            </section>
+          )}
         </div>
       </main>
     </div>
